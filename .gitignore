@@ -1,0 +1,36 @@
+# Node modules
+node_modules/
+server/node_modules/
+web/node_modules/
+
+# Build outputs
+dist/
+build/
+server/build/
+server/dist/
+web/.next/
+web/out/
+
+# Environment variables
+.env
+.env.*.local
+server/.env
+server/.env.*
+web/.env
+web/.env.*
+
+# Editor directories and files
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Mac / Linux system files
+.DS_Store
+Thumbs.db
+
+# TypeScript
+*.tsbuildinfo
