@@ -25,6 +25,7 @@ export default function LoginPage() {
   }
 
   return (
+    <div className="min-h-screen mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:items-center lg:gap-12 lg:px-8 lg:py-28 flex flex-col justify-center">
     <form onSubmit={handleLogin} style={{maxWidth:420}}>
       <h1>Login</h1>
       <input placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)} style={{display:"block",margin:"8px 0",width:"100%"}}/>
@@ -32,5 +33,6 @@ export default function LoginPage() {
       <button type="submit">Login</button>
       <p style={{marginTop:8}}>Seeded users: admin@example.com / admin123, alice@example.com / alice123</p>
     </form>
+    </div>
   );
 }

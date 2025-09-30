@@ -54,7 +54,7 @@ export default function PartDetail() {
   }
 
   return (
-    <div>
+    <div className="min-h-screen mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:items-center lg:gap-12 lg:px-8 lg:py-28">
       <h1>
         {part.name} ({part.sku})
       </h1>

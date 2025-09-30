@@ -5,13 +5,13 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function CartPage() {
   const { token } = useAuth();
-  const { data, error, mutate } = useSWR(token ? "/api/cart" : null, api);
+  const { data, error, mutate } = useSWR<{ cart?: { items: any[] } }>(token ? "/api/cart" : null, api);
   if (!token) return <div>Please <a href="/login">login</a> to view your cart.</div>;
   if (error) return <div>Error loading</div>;
   if (!data) return <div>Loading...</div>;
-  const cart = data.cart || { items: [] };
+  const cart = data?.cart || { items: [] };
   return (
-    <div>
+    <div className="min-h-screen mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:items-center lg:gap-12 lg:px-8 lg:py-28">
       <h1>Cart</h1>
       {cart.items.length === 0 ? <p>No items.</p> : (
         <ul>{cart.items.map((it:any)=>

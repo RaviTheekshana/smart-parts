@@ -24,6 +24,7 @@ export default function RegisterPage() {
   }
 
   return (
+    <div className="min-h-screen mx-auto max-w-7xl px-4 py-24 sm:px-6 lg:items-center lg:gap-12 lg:px-8 lg:py-28 flex flex-col justify-center">
     <form onSubmit={handleRegister} style={{maxWidth:420}}>
       <h1>Register</h1>
       <input placeholder="Name" value={name} onChange={e=>setName(e.target.value)} style={{display:"block",margin:"8px 0",width:"100%"}}/>
@@ -31,5 +32,6 @@ export default function RegisterPage() {
       <input type="password" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)} style={{display:"block",margin:"8px 0",width:"100%"}}/>
       <button type="submit">Create account</button>
     </form>
+    </div>
   );
 }
