@@ -19,5 +19,7 @@ app.use("/api/orders", (await import("./routes/orders.js")).default);
 app.use("/api", (await import("./routes/community.js")).default);
 app.use("/api/admin", (await import("./routes/admin.js")).default);
 
+app.use("/api/posts", (await import("./routes/posts.js")).default);
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => console.log("Server listening on", port));

@@ -1,20 +1,26 @@
 import { Router } from "express";
-import Vehicle from "../models/Vehicle.js";
+import Fitment from "../models/Fitment.js";   // <-- use Fitment for facets
+
 const r = Router();
 
-// GET /api/vehicles?make=&model=&year=  -> facets & list
+// GET /api/vehicles?make=&model=&year=
 r.get("/", async (req, res) => {
-  const q = {};
-  if (req.query.make) q.make = req.query.make;
-  if (req.query.model) q.model = req.query.model;
-  if (req.query.year) q.year = Number(req.query.year);
-  const vehicles = await Vehicle.find(q).limit(200);
-  const facets = {
-    makes: await Vehicle.distinct("make"),
-    models: req.query.make ? await Vehicle.distinct("model", { make: req.query.make }) : [],
-    years: req.query.model ? await Vehicle.distinct("year", { make: req.query.make, model: req.query.model }) : []
-  };
-  res.json({ vehicles, facets });
+  const { make, model } = req.query;
+
+  // facet lists from fitments
+  const makes  = await Fitment.distinct("vehicleQuery.make");
+  const models = make
+    ? await Fitment.distinct("vehicleQuery.model", { "vehicleQuery.make": make })
+    : [];
+  const years  = make && model
+    ? await Fitment.distinct("vehicleQuery.year", {
+        "vehicleQuery.make": make,
+        "vehicleQuery.model": model
+      })
+    : [];
+
+  // (optional) you can also return some example “vehicles” if the UI needs them
+  res.json({ vehicles: [], facets: { makes, models, years } });
 });
 
 export default r;

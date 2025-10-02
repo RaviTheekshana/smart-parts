@@ -19,9 +19,9 @@ export default function HeaderClient() {
 
   return (
     <header 
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-30 ${
         isScrolled 
-          ? "bg-black/50 backdrop-blur-sm shadow-lg" 
+          ? "bg-black/50 backdrop-blur-xs shadow-lg" 
           : "bg-transparent"
       }`}
     >
@@ -41,13 +41,13 @@ export default function HeaderClient() {
           <nav className="hidden lg:flex items-center space-x-8">
             <Link 
               href="/catalog" 
-              className="text-zinc-50 hover:text-purple-600 font-medium transition-colors duration-200"
+              className="text-white hover:text-gray-400 font-medium transition-colors duration-200"
             >
               Catalog
             </Link>
             <Link 
               href="/cart" 
-              className="text-zinc-50 hover:text-purple-600 font-medium transition-colors duration-200 relative"
+              className="text-white hover:text-gray-400 font-medium transition-colors duration-200 relative"
             >
               Cart
               <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
@@ -56,13 +56,13 @@ export default function HeaderClient() {
             </Link>
             <Link 
               href="/orders" 
-              className="text-zinc-50 hover:text-purple-600 font-medium transition-colors duration-200"
+              className="text-white hover:text-gray-400 font-medium transition-colors duration-200"
             >
               Orders
             </Link>
             <Link 
               href="/community" 
-              className="text-zinc-50 hover:text-purple-600 font-medium transition-colors duration-200"
+              className="text-white hover:text-gray-400 font-medium transition-colors duration-200"
             >
               Community
             </Link>
@@ -89,7 +89,7 @@ export default function HeaderClient() {
               <>
                 <Link 
                   href="/login"
-                  className="text-zinc-50 hover:text-purple-600 font-medium transition-colors duration-200"
+                  className="text-white hover:text-gray-400 font-medium transition-colors duration-200"
                 >
                   Login
                 </Link>

@@ -177,7 +177,7 @@ export default function LandingPage() {
                 {/* Header */}
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs text-gray-300">
-                    <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+                    <span className="inline-flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse delay-1000" />
                     <span>Live match</span>
                     <span className="rounded-full bg-emerald-400/10 px-2 py-0.5 text-[10px] font-semibold text-emerald-300 ring-1 ring-emerald-400/30">98%</span>
                   </div>
