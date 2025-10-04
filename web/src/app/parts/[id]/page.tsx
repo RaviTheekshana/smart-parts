@@ -284,7 +284,7 @@ export default function PartDetail() {
                     className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                     aria-label="Decrease"
                   >
-                    <Minus className="w-4 h-4" />
+                    <Minus className="w-4 h-4 text-blue-50" />
                 </button>
 
   <input
@@ -302,7 +302,7 @@ export default function PartDetail() {
     className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
     aria-label="Increase"
   >
-    <Plus className="w-4 h-4" />
+    <Plus className="w-4 h-4 text-blue-50" />
   </button>
 </div>
 

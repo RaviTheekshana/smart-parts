@@ -49,4 +49,22 @@ r.patch("/:id/status", auth(true), requireRole("admin","dealer"), async (req, re
   res.json({ order });
 });
 
+r.get("/:id", auth(true), async (req, res) => {
+  try {
+    const order = await Order.findOne({
+      _id: req.params.id,
+      userId: req.user._id, // ensures only the owner can access
+    }).populate("items.partId");
+
+    if (!order) {
+      return res.status(404).json({ msg: "Order not found" });
+    }
+
+    res.json({ order });
+  } catch (err) {
+    console.error("Error fetching order:", err);
+    res.status(500).json({ msg: "Server error" });
+  }
+});
+
 export default r;

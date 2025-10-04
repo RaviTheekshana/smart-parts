@@ -7,44 +7,43 @@ import { useMemo, useState } from "react";
 import { Trash2, Plus, Minus, ShoppingCart, CreditCard } from "lucide-react";
 import { useRouter } from "next/navigation";
 
-type CartAPI = { cart?: { items: Array<{
-  _id?: string;
-  partId: { _id: string; name: string; price?: number; sku?: string; brand?: string };
-  qty: number;
-  selectedLocationId?: string;
-}> } };
+type CartAPI = {
+  cart?: {
+    items: Array<{
+      _id?: string;
+      partId: { _id: string; name: string; price?: number; sku?: string; brand?: string };
+      qty: number;
+      selectedLocationId?: string;
+    }>;
+  };
+};
 
 export default function CartPage() {
   const { token } = useAuth();
   const router = useRouter();
+
+  // ✅ Always call the hook (pass null key to skip fetch when no token)
   const { data, error, mutate, isLoading } = useSWR<CartAPI>(token ? "/api/cart" : null, api);
+
   const [busyId, setBusyId] = useState<string | null>(null);
+
+  // Safe derived values BEFORE any early returns
   const cart = data?.cart || { items: [] };
-
-  if (!token) {
-    return (
-      <div className="min-h-screen flex items-center justify-center p-6">
-        <div className="text-center">
-          <p className="text-slate-600 dark:text-slate-300">
-            Please <a className="text-blue-600 dark:text-blue-400 underline" href="/login">login</a> to view your cart.
-          </p>
-        </div>
-      </div>
-    );
-  }
-  if (error) return <div className="p-6">Error loading.</div>;
-
-  function fmt(v?: number) {
-    if (typeof v !== "number") return "-";
-    try {
-      return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(v);
-    } catch { return `$${v.toFixed(2)}`; }
-  }
 
   const totals = useMemo(() => {
     const sub = cart.items.reduce((sum, it) => sum + (it.partId.price ?? 0) * it.qty, 0);
     return { subtotal: sub, grand: sub }; // tax/shipping can be added server-side
   }, [cart.items]);
+
+  // Plain helper (not a hook)
+  function fmt(v?: number) {
+    if (typeof v !== "number") return "-";
+    try {
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(v);
+    } catch {
+      return `$${v.toFixed(2)}`;
+    }
+  }
 
   async function updateQty(partId: string, newQty: number) {
     if (newQty < 1) return;
@@ -74,13 +73,27 @@ export default function CartPage() {
   }
 
   async function goCheckout() {
-    // Create a Stripe Checkout Session and redirect
     const res = await api<{ url: string }>("/api/payments/checkout", {
       method: "POST",
-      body: JSON.stringify({ /* optional: anything you want to pass */ }),
+      body: JSON.stringify({}),
     });
-    window.location.href = res.url; // Stripe-hosted checkout
+    window.location.href = res.url;
   }
+
+  // You can still branch UI here — hooks are already called above.
+  if (!token) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="text-center">
+          <p className="text-slate-600 dark:text-slate-300">
+            Please <a className="text-blue-600 dark:text-blue-400 underline" href="/login">login</a> to view your cart.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) return <div className="p-6">Error loading.</div>;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800 p-4 md:p-8">
@@ -151,7 +164,7 @@ export default function CartPage() {
                               className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                               aria-label="Decrease"
                             >
-                              <Minus className="w-4 h-4" />
+                              <Minus className="w-4 h-4 text-blue-50" />
                             </button>
                             <input
                               type="number"
@@ -170,7 +183,7 @@ export default function CartPage() {
                               className="h-10 w-10 inline-flex items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                               aria-label="Increase"
                             >
-                              <Plus className="w-4 h-4" />
+                              <Plus className="w-4 h-4 text-blue-50" />
                             </button>
                           </div>
 

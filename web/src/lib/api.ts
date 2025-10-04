@@ -1,4 +1,4 @@
-export const API = process.env.NEXT_PUBLIC_API || "http://localhost:3000";
+export const API = process.env.NEXT_PUBLIC_API || "http://localhost:3001";
 
 let token: string | null = null;
 

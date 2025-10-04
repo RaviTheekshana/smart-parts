@@ -44,35 +44,36 @@ router.post("/", auth(true), async (req, res) => {
   res.json({ post });
 });
 
-// POST vote toggle
+// POST /api/posts/:id/vote  { delta: 1 | -1 }
 router.post("/:id/vote", auth(true), async (req, res) => {
-  const delta = req.body.delta === 1 ? 1 : -1;
-  const postId = new mongoose.Types.ObjectId(req.params.id);
-
-  const session = await mongoose.startSession();
   try {
-    await session.withTransaction(async () => {
-      const prev = await Vote.findOne({
-        targetType: "post",
-        targetId: postId,
-        userId: req.user._id,
-      }).session(session);
+    const delta = req.body.delta === 1 ? 1 : -1;
+    const postId = new mongoose.Types.ObjectId(req.params.id);
 
-      const prevVal = prev?.value ?? 0;
-      const nextVal = prevVal === delta ? 0 : delta;
-      const diff = nextVal - prevVal;
+    // 1) fetch previous vote
+    const prev = await Vote.findOne({
+      targetType: "post",
+      targetId: postId,
+      userId: req.user._id,
+    }).lean();
 
-      await Vote.updateOne(
-        { targetType: "post", targetId: postId, userId: req.user._id },
-        { $set: { value: nextVal } },
-        { upsert: true, session }
-      );
+    const prevVal = prev?.value ?? 0;
+    const nextVal = prevVal === delta ? 0 : delta; // toggle if clicking same arrow
+    const diff = nextVal - prevVal;
 
-      if (diff !== 0) {
-        await Post.updateOne({ _id: postId }, { $inc: { votes: diff } }, { session });
-      }
-    });
+    // 2) upsert new vote value
+    await Vote.updateOne(
+      { targetType: "post", targetId: postId, userId: req.user._id },
+      { $set: { value: nextVal } },
+      { upsert: true }
+    );
 
+    // 3) bump post counter if needed
+    if (diff !== 0) {
+      await Post.updateOne({ _id: postId }, { $inc: { votes: diff } });
+    }
+
+    // 4) return fresh numbers
     const post = await Post.findById(postId).lean();
     const myVote = await Vote.findOne({
       targetType: "post",
@@ -84,8 +85,6 @@ router.post("/:id/vote", auth(true), async (req, res) => {
   } catch (err) {
     console.error(err);
     res.status(500).json({ msg: "Vote failed" });
-  } finally {
-    session.endSession();
   }
 });
 

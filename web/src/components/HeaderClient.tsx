@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import { ChevronDownIcon, Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 
 export default function HeaderClient() {
-  const { token, logout } = useAuth();
+  const { token, logout, user } = useAuth();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -100,6 +100,14 @@ export default function HeaderClient() {
                   Register
                 </Link>
               </>
+            )}
+            {user?.role === "admin" && (
+              <a
+                href="/admin"
+                className="inline-flex items-center rounded-xl bg-slate-900 text-white dark:bg-white dark:text-slate-900 px-3 py-1.5 text-sm hover:opacity-90 transition"
+              >
+                Admin
+              </a>
             )}
           </div>
 
