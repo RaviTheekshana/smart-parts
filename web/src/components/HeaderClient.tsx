@@ -25,15 +25,12 @@ export default function HeaderClient() {
           : "bg-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-8xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 lg:h-20">
           {/* Logo */}
           <Link href="/" className="flex items-center space-x-2">
-            <div className="w-10 h-10 bg-gradient-to-r from-purple-600 to-blue-600 rounded-xl flex items-center justify-center">
-              <span className="text-white font-bold text-xl">T</span>
-            </div>
             <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              PartPal
+              <img src="/logo.png" alt="Logo" className="w-32 h-31 pt-1" />
             </span>
           </Link>
 

@@ -8,6 +8,9 @@ import jwt from "jsonwebtoken";
 import Cart from "./models/Cart.js";
 import Order from "./models/Order.js";
 import adminUsers from "./routes/admin.users.js";
+import adminParts from "./routes/admin.parts.js";
+import adminOrders from "./routes/admin.orders.js";
+
 
 // ---------- init ----------
 const app = express();
@@ -68,6 +71,9 @@ function auth(req, res, next) {
 // ---------- Your existing routes ----------
 app.use("/api/admin", (await import("./routes/admin.metrics.js")).default);
 app.use("/api/admin", adminUsers);
+app.use("/api/admin", adminParts);
+app.use("/api/admin", adminOrders);
+
 
 app.use("/api/auth", (await import("./routes/auth.js")).default);
 app.use("/api/vehicles", (await import("./routes/vehicles.js")).default);

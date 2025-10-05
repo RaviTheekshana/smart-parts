@@ -71,4 +71,61 @@ r.get("/metrics", auth(true), requireRole("admin"), async (req, res) => {
   }
 });
 
+r.get("/revenue/monthly", auth(true), requireRole("admin", "dealer"), async (req, res) => {
+  try {
+    const monthsBack = parseInt(req.query.months || "12"); // default last 12 months
+
+    // Get start date of N months ago
+    const since = new Date();
+    since.setMonth(since.getMonth() - monthsBack);
+    since.setDate(1); // beginning of month
+
+    const result = await Order.aggregate([
+      {
+        $match: {
+          status: "paid",
+          "totals.grand": { $gt: 0 },
+          createdAt: { $gte: since },
+        },
+      },
+      {
+        // group by year + month
+        $group: {
+          _id: {
+            y: { $year: "$createdAt" },
+            m: { $month: "$createdAt" },
+          },
+          total: { $sum: "$totals.grand" },
+        },
+      },
+      { $sort: { "_id.y": 1, "_id.m": 1 } },
+      {
+        // format as { month: "2025-09", total: 12345 }
+        $project: {
+          _id: 0,
+          month: {
+            $concat: [
+              { $toString: "$_id.y" },
+              "-",
+              {
+                $cond: [
+                  { $lt: ["$_id.m", 10] },
+                  { $concat: ["0", { $toString: "$_id.m" }] },
+                  { $toString: "$_id.m" },
+                ],
+              },
+            ],
+          },
+          total: { $round: ["$total", 2] },
+        },
+      },
+    ]);
+
+    res.json({ revenue: result });
+  } catch (err) {
+    console.error("monthly revenue error:", err);
+    res.status(500).json({ msg: "Failed to calculate revenue" });
+  }
+});
+
 export default r;

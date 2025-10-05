@@ -3,6 +3,7 @@
 import useSWR from "swr";
 import { api } from "@/lib/api";
 import { TrendingUp, Users, Package, Receipt } from "lucide-react";
+import RevenueChart from "@/components/admin/RevenueChart"; // ← imported
 
 type Metrics = {
   counts: { users: number; parts: number; orders: number; paidOrders: number };
@@ -116,6 +117,8 @@ export default function AdminDashboard() {
             </table>
           </div>
         </section>
+                 {/* Revenue Chart */}
+      <RevenueChart />
       </div>
     </div>
   );

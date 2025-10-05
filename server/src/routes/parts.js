@@ -33,7 +33,7 @@ r.get("/", async (req, res) => {
   if (req.query.brand) f.brand = req.query.brand;
   if (req.query.q) f.name = new RegExp(req.query.q, "i");
 
-  const parts = await Part.find(f).limit(400);
+  const parts = await Part.find(f).limit(100);
 
   // Attach simple total stock from Inventory
   const ids = parts.map(p => p._id);
