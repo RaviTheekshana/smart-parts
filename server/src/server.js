@@ -7,6 +7,7 @@ import Stripe from "stripe";
 import jwt from "jsonwebtoken";
 import Cart from "./models/Cart.js";
 import Order from "./models/Order.js";
+import Inventory from "./models/Inventory.js";
 import adminUsers from "./routes/admin.users.js";
 import adminParts from "./routes/admin.parts.js";
 import adminOrders from "./routes/admin.orders.js";
@@ -153,58 +154,87 @@ app.post("/api/orders/finalize", auth, async (req, res) => {
 
 
 // ---------- Helpers ----------
-async function createOrderAndEmptyCart(userId, session, lineItems) {
-  if (!userId) return;
+async function createOrderAndEmptyCart(userId, session /*, lineItems */) {
+  try {
+    // --- idempotency: if the order for this Stripe session already exists, exit
+    const existing = await Order.findOne({ "payment.sessionId": session.id });
+    if (existing) return existing;
 
-  // Idempotency
-  const existing = await Order.findOne({ "payment.sessionId": session.id });
-  if (existing) return existing;
+    // --- normalize userId to match your schema
+    const UserId =
+      (Order.schema?.paths?.userId?.instance === "ObjectID" && mongoose.isValidObjectId(userId))
+        ? new mongoose.Types.ObjectId(userId)
+        : userId;
 
-  const cart = await Cart.findOne({ userId }).populate("items.partId");
-  if (!cart) return;
+    // --- load cart with parts
+    const cart = await Cart.findOne({ userId: UserId }).populate("items.partId");
+    if (!cart || cart.items.length === 0) {
+      console.warn("[createOrderAndEmptyCart] Cart empty or not found for", userId);
+      return null;
+    }
 
-  const items = cart.items.map((it) => ({
-    partId: it.partId._id,
-    name: it.partId.name,
-    price: Number(it.partId.price || 0),
-    qty: it.qty,
-    locationId: it.selectedLocationId || null,
-  }));
+    // --- build snapshot for order
+    const items = cart.items.map((it) => ({
+      partId: it.partId._id,
+      name: it.partId.name,
+      price: Number(it.partId.price || 0),
+      qty: it.qty,
+      locationId: it.selectedLocationId || null,
+    }));
 
-  // compute totals as your UI expects
-  const subtotal = items.reduce((sum, it) => sum + it.price * it.qty, 0);
-  const tax = 0; // plug your tax calc here if needed
-  const grand = subtotal + tax;
+    const subtotal = items.reduce((s, it) => s + it.price * it.qty, 0);
+    const tax = 0;
+    const grand = subtotal + tax;
 
-  // ---- status mapping: fit to your enum ----
-  const allowed = (Order.schema?.path("status")?.enumValues || []).map(String);
-  const stripePaymentStatus = String(session.payment_status || "paid").toLowerCase();
-  let finalStatus =
-    allowed.find((v) => v.toLowerCase() === stripePaymentStatus) ||
-    allowed.find((v) => /paid|success|completed|complete/.test(v.toLowerCase())) ||
-    allowed[0]; // fallback to first enum option or schema default
+    // --- choose final status (keep your existing enum handling)
+    const allowed = (Order.schema?.path("status")?.enumValues || []).map(String);
+    const stripePaymentStatus = String(session.payment_status || "paid").toLowerCase();
+    const finalStatus =
+      allowed.find((v) => v.toLowerCase() === stripePaymentStatus) ||
+      allowed.find((v) => /paid|success|completed|complete/.test(v.toLowerCase())) ||
+      undefined;
 
-  const orderDoc = {
-    userId,
-    items,
-    totals: { subtotal, tax, grand },   // <-- ✅ your schema
-    payment: {
-      provider: "stripe",
-      sessionId: session.id,
-      status: session.payment_status,   // keep the raw Stripe status here
-      intentId: session.payment_intent || null,
-    },
-  };
+    // --- 1) decrease qtyOnHand per item (only this; nothing else)
+    for (const it of items) {
+      const upd = await Inventory.updateOne(
+        {
+          partId: it.partId,
+          locationId: it.locationId,
+          qtyOnHand: { $gte: it.qty }, // guard against oversell
+        },
+        { $inc: { qtyOnHand: -it.qty } }
+      );
 
-  if (finalStatus) orderDoc.status = finalStatus;
+      if (upd.modifiedCount === 0) {
+        // if any line can’t be fulfilled, bail out (don’t create order, don’t clear cart)
+        console.error("[Inventory] Out of stock:", it.partId?.toString?.(), "need", it.qty);
+        throw new Error(`OUT_OF_STOCK:${it.partId}`);
+      }
+    }
 
-  const order = await Order.create(orderDoc);
+    // --- 2) create order
+    const order = await Order.create({
+      userId: UserId,
+      items,
+      totals: { subtotal, tax, grand },
+      status: finalStatus,
+      payment: {
+        provider: "stripe",
+        sessionId: session.id,
+        status: session.payment_status,
+        intentId: session.payment_intent || null,
+      },
+    });
 
-  // Empty cart
-  cart.items = [];
-  await cart.save();
+    // --- 3) empty cart
+    cart.items = [];
+    await cart.save();
 
-  return order;
+    return order;
+  } catch (err) {
+    console.error("createOrderAndEmptyCart error:", err?.message || err);
+    return null;
+  }
 }
 
 // ---------- boot ----------

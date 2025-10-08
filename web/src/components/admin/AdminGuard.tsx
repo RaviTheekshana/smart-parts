@@ -1,14 +1,34 @@
 "use client";
 
-import { useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef } from "react";
+import { useRouter, usePathname } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 
-export default function AdminGuard({ children, allow = ["admin"] }: { children: React.ReactNode; allow?: string[] }) {
-  const { token, user, isAuthLoading } = useAuth();
-  const router = useRouter();
+export default function AdminGuard({
+  children,
+  allow = ["admin"],
+}: {
+  children: React.ReactNode;
+  allow?: string[];
+}) {
+  const { token, user, isAuthLoading } = useAuth();           // 1) hooks
+  const router = useRouter();                                  // 2)
+  const pathname = usePathname();                              // 3)
+  const redirected = useRef(false);                            // 4)
 
-  // Wait until AuthContext finished initializing
+  const isLoggedIn = !!token && !!user;
+  const isAllowed = isLoggedIn && allow.includes(user?.role ?? "");
+
+  // 5) ALWAYS call effects — don't return before this
+  useEffect(() => {
+    if (!isAuthLoading && !isLoggedIn && !redirected.current) {
+      redirected.current = true;
+      const next = encodeURIComponent(pathname || "/");
+      router.replace(`/login?next=${next}`);
+    }
+  }, [isAuthLoading, isLoggedIn, pathname, router]);
+
+  // ----- Render branches AFTER hooks -----
   if (isAuthLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center text-slate-500">
@@ -17,12 +37,12 @@ export default function AdminGuard({ children, allow = ["admin"] }: { children: 
     );
   }
 
-  if (!token) {
-    router.replace("/login");
+  if (!isLoggedIn) {
+    // redirect in effect; render nothing while it happens
     return null;
   }
 
-  if (!user || !allow.includes(user.role ?? "")) {
+  if (!isAllowed) {
     return (
       <div className="min-h-screen flex items-center justify-center p-8">
         <div className="rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/70 p-8 text-center">

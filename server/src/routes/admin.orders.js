@@ -132,4 +132,78 @@ r.post("/orders/:id/refund", async (req, res) => {
   }
 });
 
+/**
+ * GET /api/admin/analytics/top-selling?limit=10&statuses=paid,fulfilled,completed
+ * Optional: since=YYYY-MM-DD   (limit to recent window)
+ */
+r.get("/analytics/top-selling", async (req, res) => {
+  try {
+    const limit = Math.min(100, Math.max(1, Number(req.query.limit ?? 10)));
+    const statuses = String(req.query.statuses ?? "paid,fulfilled,completed")
+      .split(",").map(s => s.trim()).filter(Boolean);
+
+    const sinceStr = String(req.query.since ?? "").trim();
+    const since = sinceStr ? new Date(sinceStr) : null;
+
+    const match = { status: { $in: statuses } };
+    if (since) match.createdAt = { $gte: since };
+
+    const rows = await Order.aggregate([
+      { $match: match },
+      {
+        $set: {
+          items: {
+            $cond: [
+              { $isArray: "$items" },
+              "$items",
+              [{ $ifNull: ["$items", null] }]
+            ]
+          }
+        }
+      },
+      { $unwind: "$items" },
+      {
+        $addFields: {
+          _qty:   { $toDouble: { $ifNull: ["$items.qty", 0] } },
+          _price: { $toDouble: { $ifNull: [
+            "$items.priceAtOrder", "$items.price", "$items.unitPrice", "$items.priceEach", 0
+          ] } }
+        }
+      },
+      {
+        $group: {
+          _id: "$items.partId",
+          totalQty:     { $sum: "$_qty" },
+          totalRevenue: { $sum: { $multiply: ["$_qty", "$_price"] } }
+        }
+      },
+      { $sort: { totalQty: -1, totalRevenue: -1 } },
+      { $limit: limit },
+      {
+        $lookup: { from: "parts", localField: "_id", foreignField: "_id", as: "part" }
+      },
+      { $unwind: { path: "$part", preserveNullAndEmptyArrays: true } },
+      {
+        $project: {
+          _id: 0,
+          partId: "$_id",
+          sku: "$part.sku",
+          name: "$part.name",
+          brand: "$part.brand",
+          totalQty: 1,
+          totalRevenue: { $round: ["$totalRevenue", 2] }
+        }
+      }
+    ]);
+
+    res.json({ rows });
+  } catch (e) {
+    console.error("top-selling error:", e);
+    res.status(500).json({ msg: "Failed to compute top selling" });
+  }
+});
+
+
+
+
 export default r;

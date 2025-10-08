@@ -71,60 +71,59 @@ r.get("/metrics", auth(true), requireRole("admin"), async (req, res) => {
   }
 });
 
-r.get("/revenue/monthly", auth(true), requireRole("admin", "dealer"), async (req, res) => {
+r.get("/revenue/series", auth(true), requireRole("admin", "dealer"), async (req, res) => {
   try {
-    const monthsBack = parseInt(req.query.months || "12"); // default last 12 months
+    const granularity = (req.query.granularity || "month").toString(); // "day" | "month"
+    const span = Number(req.query.span || (granularity === "day" ? 30 : 12));
 
-    // Get start date of N months ago
+    // base match
+    const match = {
+      status: "paid",
+      "totals.grand": { $gt: 0 },
+    };
+
     const since = new Date();
-    since.setMonth(since.getMonth() - monthsBack);
-    since.setDate(1); // beginning of month
+    if (granularity === "day") {
+      since.setDate(since.getDate() - span);
+      match.createdAt = { $gte: since };
+    } else {
+      since.setMonth(since.getMonth() - span);
+      since.setDate(1);
+      match.createdAt = { $gte: since };
+    }
+
+    // Grouping keys + label formatter
+    const projectLabel =
+      granularity === "day"
+        ? {
+            $dateToString: { date: "$createdAt", format: "%Y-%m-%d" },
+          }
+        : {
+            $dateToString: { date: "$createdAt", format: "%Y-%m" },
+          };
 
     const result = await Order.aggregate([
+      { $match: match },
       {
-        $match: {
-          status: "paid",
-          "totals.grand": { $gt: 0 },
-          createdAt: { $gte: since },
-        },
-      },
-      {
-        // group by year + month
         $group: {
-          _id: {
-            y: { $year: "$createdAt" },
-            m: { $month: "$createdAt" },
-          },
+          _id: projectLabel,
           total: { $sum: "$totals.grand" },
         },
       },
-      { $sort: { "_id.y": 1, "_id.m": 1 } },
+      { $sort: { _id: 1 } },
       {
-        // format as { month: "2025-09", total: 12345 }
         $project: {
           _id: 0,
-          month: {
-            $concat: [
-              { $toString: "$_id.y" },
-              "-",
-              {
-                $cond: [
-                  { $lt: ["$_id.m", 10] },
-                  { $concat: ["0", { $toString: "$_id.m" }] },
-                  { $toString: "$_id.m" },
-                ],
-              },
-            ],
-          },
+          label: "$_id",
           total: { $round: ["$total", 2] },
         },
       },
     ]);
 
-    res.json({ revenue: result });
+    res.json({ series: result, granularity });
   } catch (err) {
-    console.error("monthly revenue error:", err);
-    res.status(500).json({ msg: "Failed to calculate revenue" });
+    console.error("revenue series error:", err);
+    res.status(500).json({ msg: "Failed to calculate revenue series" });
   }
 });
 
