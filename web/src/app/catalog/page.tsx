@@ -17,8 +17,7 @@ function qs(params: Record<string, any>) {
 
 function formatPrice(p?: number) {
   if (typeof p !== "number") return "-";
-  return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(p / 100);
-  // If your price is already in whole currency (not cents), use: format(p)
+  return new Intl.NumberFormat(undefined, { style: "currency", currency: "LKR", maximumFractionDigits: 0 }).format(p);
 }
 
 export default function ModernCatalogPage() {

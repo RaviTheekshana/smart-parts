@@ -26,7 +26,7 @@ export default function AdminDashboard() {
 
   const fmt = (v?: number) =>
     typeof v === "number"
-      ? new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(v)
+      ? new Intl.NumberFormat(undefined, { style: "currency", currency: "LKR" }).format(v)
       : "-";
 
   return (

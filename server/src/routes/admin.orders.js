@@ -150,46 +150,154 @@ r.get("/analytics/top-selling", async (req, res) => {
 
     const rows = await Order.aggregate([
       { $match: match },
+
+      // normalize items
       {
         $set: {
           items: {
-            $cond: [
-              { $isArray: "$items" },
-              "$items",
-              [{ $ifNull: ["$items", null] }]
-            ]
+            $cond: [{ $isArray: "$items" }, "$items", [{ $ifNull: ["$items", null] }]]
           }
         }
       },
       { $unwind: "$items" },
+
+      // bring in part (for last-resort price, sku, name, brand)
       {
-        $addFields: {
-          _qty:   { $toDouble: { $ifNull: ["$items.qty", 0] } },
-          _price: { $toDouble: { $ifNull: [
-            "$items.priceAtOrder", "$items.price", "$items.unitPrice", "$items.priceEach", 0
-          ] } }
+        $lookup: {
+          from: "parts",
+          localField: "items.partId",
+          foreignField: "_id",
+          as: "part"
         }
       },
+      { $unwind: { path: "$part", preserveNullAndEmptyArrays: true } },
+
+      // safe numeric conversions
+      {
+        $addFields: {
+          _qty: { $convert: { input: "$items.qty", to: "double", onError: 0, onNull: 0 } },
+
+          _p1: { $convert: { input: "$items.priceAtOrder", to: "double", onError: 0, onNull: 0 } },
+          _p2: { $convert: { input: "$items.price",        to: "double", onError: 0, onNull: 0 } },
+          _p3: { $convert: { input: "$items.unitPrice",    to: "double", onError: 0, onNull: 0 } },
+          _p4: { $convert: { input: "$items.priceEach",    to: "double", onError: 0, onNull: 0 } },
+          _p5: { $convert: { input: "$part.price",         to: "double", onError: 0, onNull: 0 } },
+
+          _subtotal: { $convert: { input: "$totals.subtotal", to: "double", onError: 0, onNull: 0 } }
+        }
+      },
+
+      // choose best unit price
+      {
+        $addFields: {
+          _unitPrice: {
+            $cond: [{ $gt: ["$_p1", 0] }, "$_p1",
+            { $cond: [{ $gt: ["$_p2", 0] }, "$_p2",
+            { $cond: [{ $gt: ["$_p3", 0] }, "$_p3",
+            { $cond: [{ $gt: ["$_p4", 0] }, "$_p4", "$_p5" ] }]}]}]
+          }
+        }
+      },
+
+      // window stats per order to enable proration
+      // requires MongoDB 5.0+
+      {
+        $setWindowFields: {
+          partitionBy: "$_id", // order _id
+          output: {
+            orderQtySum: {
+              $sum: "$_qty",
+              window: { documents: ["unbounded", "unbounded"] }
+            },
+            pricedLineTotalSum: {
+              $sum: {
+                $cond: [{ $gt: ["$_unitPrice", 0] }, { $multiply: ["$_qty", "$_unitPrice"] }, 0]
+              },
+              window: { documents: ["unbounded", "unbounded"] }
+            },
+            unpricedQtySum: {
+              $sum: {
+                $cond: [{ $gt: ["$_unitPrice", 0] }, 0, "$_qty"]
+              },
+              window: { documents: ["unbounded", "unbounded"] }
+            },
+            anyPricedCount: {
+              $sum: { $cond: [{ $gt: ["$_unitPrice", 0] }, 1, 0] },
+              window: { documents: ["unbounded", "unbounded"] }
+            }
+          }
+        }
+      },
+
+      // compute line revenue:
+      // - priced items: qty * unitPrice
+      // - unpriced items:
+      //     if anyPricedCount>0 -> share leftover (subtotal - pricedLineTotalSum) by qty
+      //     else -> share entire subtotal by qty
+      {
+        $addFields: {
+          _lineRevenue: {
+            $cond: [
+              { $gt: ["$_unitPrice", 0] },
+              { $multiply: ["$_qty", "$_unitPrice"] },
+              {
+                $let: {
+                  vars: {
+                    leftover: {
+                      $max: [
+                        { $subtract: ["$_subtotal", "$pricedLineTotalSum"] },
+                        0
+                      ]
+                    }
+                  },
+                  in: {
+                    $cond: [
+                      { $gt: ["$anyPricedCount", 0] },
+                      // some items priced -> unpriced share leftover by unpricedQtySum
+                      {
+                        $cond: [
+                          { $gt: ["$unpricedQtySum", 0] },
+                          { $multiply: ["$_qty", { $divide: ["$$leftover", "$unpricedQtySum"] }] },
+                          0
+                        ]
+                      },
+                      // none priced -> split full subtotal by total qty
+                      {
+                        $cond: [
+                          { $gt: ["$orderQtySum", 0] },
+                          { $multiply: ["$_qty", { $divide: ["$_subtotal", "$orderQtySum"] }] },
+                          0
+                        ]
+                      }
+                    ]
+                  }
+                }
+              }
+            ]
+          }
+        }
+      },
+
+      // final group by part
       {
         $group: {
           _id: "$items.partId",
           totalQty:     { $sum: "$_qty" },
-          totalRevenue: { $sum: { $multiply: ["$_qty", "$_price"] } }
+          totalRevenue: { $sum: "$_lineRevenue" },
+          sku:   { $first: "$part.sku" },
+          name:  { $first: "$part.name" },
+          brand: { $first: "$part.brand" }
         }
       },
+
       { $sort: { totalQty: -1, totalRevenue: -1 } },
       { $limit: limit },
-      {
-        $lookup: { from: "parts", localField: "_id", foreignField: "_id", as: "part" }
-      },
-      { $unwind: { path: "$part", preserveNullAndEmptyArrays: true } },
+
       {
         $project: {
           _id: 0,
           partId: "$_id",
-          sku: "$part.sku",
-          name: "$part.name",
-          brand: "$part.brand",
+          sku: 1, name: 1, brand: 1,
           totalQty: 1,
           totalRevenue: { $round: ["$totalRevenue", 2] }
         }

@@ -32,7 +32,7 @@ export default function AdminOrdersPage() {
   const totalPages = data?.totalPages ?? 1;
 
   const fmtMoney = (n: number) =>
-    new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n ?? 0);
+    new Intl.NumberFormat(undefined, { style: "currency", currency: "LKR" }).format(n ?? 0);
 
   return (
     <div className="space-y-6">

@@ -189,4 +189,58 @@ function parseCsvText(text) {
   });
 }
 
+/* ---------- INVENTORIES ---------- */
+
+// list inventories for a part
+r.get("/parts/:id/inventories", async (req, res) => {
+  const rows = await Inventory.find({ partId: req.params.id }).sort({ locationId: 1 }).lean();
+  res.json({ inventories: rows });
+});
+
+// upsert/replace a single inventory row
+r.put("/parts/:id/inventories", async (req, res) => {
+  const { locationId, qtyOnHand, eta } = req.body;
+  if (!locationId) return res.status(400).json({ msg: "locationId required" });
+  const doc = await Inventory.findOneAndUpdate(
+    { partId: req.params.id, locationId },
+    { $setOnInsert: { qtyReserved: 0 }, $set: { qtyOnHand: Number(qtyOnHand ?? 0), eta: eta || null } },
+    { upsert: true, new: true }
+  );
+  res.json({ inventory: doc });
+});
+
+// delete a location row
+r.delete("/parts/:id/inventories/:locationId", async (req, res) => {
+  await Inventory.deleteOne({ partId: req.params.id, locationId: req.params.locationId });
+  res.json({ ok: true });
+});
+
+/* ---------- FITMENTS ---------- */
+
+// list fitments for a part
+r.get("/parts/:id/fitments", async (req, res) => {
+  const rows = await Fitment.find({ partId: req.params.id }).sort({ make: 1, model: 1, yearFrom: 1 }).lean();
+  res.json({ fitments: rows });
+});
+
+// create one fitment
+r.post("/parts/:id/fitments", async (req, res) => {
+  const { make, model, yearFrom, yearTo, notes } = req.body;
+  const f = await Fitment.create({
+    partId: req.params.id,
+    make: make?.trim(),
+    model: model?.trim(),
+    yearFrom: Number(yearFrom ?? 0),
+    yearTo: Number(yearTo ?? yearFrom ?? 0),
+    notes: notes?.trim(),
+  });
+  res.json({ fitment: f });
+});
+
+// delete one fitment
+r.delete("/parts/:id/fitments/:fitmentId", async (req, res) => {
+  await Fitment.deleteOne({ _id: req.params.fitmentId, partId: req.params.id });
+  res.json({ ok: true });
+});
+
 export default r;

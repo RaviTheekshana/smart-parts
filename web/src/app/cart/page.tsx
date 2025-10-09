@@ -39,7 +39,7 @@ export default function CartPage() {
   function fmt(v?: number) {
     if (typeof v !== "number") return "-";
     try {
-      return new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(v);
+      return new Intl.NumberFormat(undefined, { style: "currency", currency: "LKR" }).format(v);
     } catch {
       return `$${v.toFixed(2)}`;
     }

@@ -29,7 +29,7 @@ export default function ProductsPage() {
   const parts = data?.parts || [];
   const fmt = (v?: number) =>
     typeof v === "number"
-      ? new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(v)
+      ? new Intl.NumberFormat(undefined, { style: "currency", currency: "LKR" }).format(v)
       : "-";
 
   async function handleDelete(id: string) {

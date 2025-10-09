@@ -32,7 +32,7 @@ export default function TopSellingTable() {
   const rows = data?.rows ?? [];
   const fmtMoney = (n?: number) =>
     typeof n === "number"
-      ? new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n)
+      ? new Intl.NumberFormat(undefined, { style: "currency", currency: "LKR" }).format(n)
       : "—";
 
   return (

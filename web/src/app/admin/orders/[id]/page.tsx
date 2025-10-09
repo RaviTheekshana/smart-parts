@@ -32,7 +32,7 @@ export default function AdminOrderDetail() {
 
   const fmt = (n?: number) =>
     typeof n === "number"
-      ? new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(n)
+      ? new Intl.NumberFormat(undefined, { style: "currency", currency: "LKR" }).format(n)
       : "-";
 
   async function updateStatus(status: string) {

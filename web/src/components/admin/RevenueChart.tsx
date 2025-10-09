@@ -76,7 +76,7 @@ export default function RevenueChart() {
                   : label
               }
               formatter={(val: number) =>
-                new Intl.NumberFormat(undefined, { style: "currency", currency: "USD" }).format(val)
+                new Intl.NumberFormat(undefined, { style: "currency", currency: "LKR" }).format(val)
               }
               labelStyle={{ color: "#0f172a" }}
             />

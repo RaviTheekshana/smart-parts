@@ -58,7 +58,7 @@ export default function PartDetail() {
     try {
       return new Intl.NumberFormat(undefined, {
         style: "currency",
-        currency: "USD",
+        currency: "LKR",
         maximumFractionDigits: 2,
       }).format(v);
     } catch {

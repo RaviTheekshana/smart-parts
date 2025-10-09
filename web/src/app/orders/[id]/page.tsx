@@ -55,7 +55,7 @@ export default function OrderDetailPage() {
     try {
       return new Intl.NumberFormat(undefined, {
         style: "currency",
-        currency: "USD",
+        currency: "LKR",
       }).format(v);
     } catch {
       return `$${v.toFixed(2)}`;

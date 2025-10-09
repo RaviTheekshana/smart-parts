@@ -7,6 +7,8 @@ import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { ArrowLeft, ArrowUp, ArrowDown, Send } from "lucide-react";
 
+type VehicleTags = { make?: string; model?: string; yearFrom?: number; yearTo?: number; trim?: string; engine?: string };
+
 type Post = {
   _id: string;
   title: string;
@@ -16,6 +18,9 @@ type Post = {
   commentsCount?: number;
   createdAt?: string;
   authorName?: string;
+  imageUrl?: string;
+  vehicleTags?: VehicleTags;
+  partTags?: string[];
 };
 
 type Answer = {
@@ -27,7 +32,10 @@ type Answer = {
 };
 
 type PostAndAnswers = { post: Post; answers: Answer[] };
-type CommentsResponse = { comments: Array<{ _id: string; authorName: string; text: string; createdAt: string }> };
+
+type CommentsResponse = {
+  comments: Array<{ _id: string; authorName: string; text: string; createdAt: string }>;
+};
 
 export default function CommunityPostPage() {
   const router = useRouter();
@@ -35,7 +43,10 @@ export default function CommunityPostPage() {
   const { id } = useParams() as { id: string };
 
   const { data, error, mutate } = useSWR<PostAndAnswers>(`/api/posts/${id}`, api);
-  const { data: comments, mutate: mutateComments } = useSWR<CommentsResponse>(`/api/posts/${id}/comments`, api);
+  const { data: comments, mutate: mutateComments } = useSWR<CommentsResponse>(
+    `/api/posts/${id}/comments`,
+    api
+  );
 
   const [answerText, setAnswerText] = useState("");
   const [commentText, setCommentText] = useState("");
@@ -52,15 +63,21 @@ export default function CommunityPostPage() {
     if (!token) return router.push("/login");
     setBusyVote(true);
     try {
-      const res = await api<{ votes: number; myVote: -1 | 0 | 1 }>(`/api/posts/${id}/vote`, {
+      const res = await api<{ votes: number; myVote?: -1 | 0 | 1 }>(`/api/posts/${id}/vote`, {
         method: "POST",
         body: JSON.stringify({ delta }),
       });
-      // update locally
       mutate(
         (prev) =>
           prev
-            ? { ...prev, post: { ...prev.post, votes: res.votes, myVote: res.myVote } }
+            ? {
+                ...prev,
+                post: {
+                  ...prev.post,
+                  votes: typeof res.votes === "number" ? res.votes : prev.post.votes,
+                  ...(typeof res.myVote !== "undefined" ? { myVote: res.myVote } : {}),
+                },
+              }
             : prev,
         { revalidate: false }
       );
@@ -80,7 +97,7 @@ export default function CommunityPostPage() {
         body: JSON.stringify({ body }),
       });
       setAnswerText("");
-      mutate(); // refresh answers
+      mutate(); // refresh answers & post (commentsCount might be separate)
     } finally {
       setBusyAnswer(false);
     }
@@ -98,16 +115,28 @@ export default function CommunityPostPage() {
       });
       setCommentText("");
       mutateComments(); // refresh comments
-      mutate(); // refresh commentsCount if your API increments it
+      mutate(); // refresh post (commentsCount)
     } finally {
       setBusyComment(false);
     }
   }
 
+  const vehicleLine = (() => {
+    const v = post.vehicleTags || {};
+    const parts = [
+      v.make,
+      v.model,
+      v.yearFrom ? `${v.yearFrom}${v.yearTo ? "–" + v.yearTo : ""}` : undefined,
+      v.trim,
+      v.engine,
+    ].filter(Boolean);
+    return parts.join(" • ");
+  })();
+
   return (
-    
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-100">
-        <div className="bg-gradient-to-r from-blue-900 to-indigo-600 text-white">
+      {/* Hero */}
+      <div className="bg-gradient-to-r from-blue-900 to-indigo-600 text-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-22 pb-10">
           <div className="text-center">
             <h1 className="text-4xl md:text-5xl font-bold mb-2">Community</h1>
@@ -117,6 +146,7 @@ export default function CommunityPostPage() {
           </div>
         </div>
       </div>
+
       <div className="max-w-6xl mx-auto px-4 py-10 md:py-16">
         <button
           onClick={() => router.back()}
@@ -154,8 +184,42 @@ export default function CommunityPostPage() {
             {/* content */}
             <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-bold text-slate-900">{post.title}</h1>
-              {post.body && <p className="mt-2 text-slate-700 whitespace-pre-wrap">{post.body}</p>}
-              <div className="mt-2 text-xs text-slate-500">
+
+              {/* Image */}
+              {post.imageUrl && (
+                <img
+                  src={post.imageUrl}
+                  alt=""
+                  className="mt-3 max-h-96 w-full object-cover rounded-xl border"
+                />
+              )}
+
+              {/* Body */}
+              {post.body && (
+                <p className="mt-3 text-slate-700 whitespace-pre-wrap">{post.body}</p>
+              )}
+
+              {/* Tags */}
+              {(vehicleLine || (post.partTags?.length ?? 0) > 0) && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {vehicleLine && (
+                    <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-slate-50 text-slate-700">
+                      {vehicleLine}
+                    </span>
+                  )}
+                  {(post.partTags ?? []).map((t) => (
+                    <span
+                      key={t}
+                      className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold border bg-slate-50 text-slate-700"
+                    >
+                      {t}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Meta */}
+              <div className="mt-3 text-xs text-slate-500">
                 {post.authorName ? <>By {post.authorName} • </> : null}
                 {post.createdAt ? new Date(post.createdAt).toLocaleString() : null}
                 {typeof post.commentsCount === "number" ? <> • {post.commentsCount} comments</> : null}
@@ -180,7 +244,11 @@ export default function CommunityPostPage() {
             disabled={!token || !answerText.trim() || busyAnswer}
             className="mt-3 inline-flex items-center gap-2 rounded-xl bg-slate-900 text-white px-4 py-2 hover:opacity-90 transition disabled:opacity-50"
           >
-            {busyAnswer ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Send className="w-4 h-4" />}
+            {busyAnswer ? (
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
             Post answer
           </button>
         </section>
@@ -193,8 +261,8 @@ export default function CommunityPostPage() {
           ) : (
             <ul className="space-y-4">
               {answers.map((a) => (
-                <li key={a._id} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <div className="text-sm text-slate-500">
+                <li key={a._id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                  <div className="text-xs text-slate-500">
                     {a.createdAt ? new Date(a.createdAt).toLocaleString() : null}
                   </div>
                   <p className="mt-1 text-slate-800 whitespace-pre-wrap">{a.body}</p>

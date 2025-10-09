@@ -11,7 +11,8 @@ import Inventory from "./models/Inventory.js";
 import adminUsers from "./routes/admin.users.js";
 import adminParts from "./routes/admin.parts.js";
 import adminOrders from "./routes/admin.orders.js";
-
+import adminPosts from "./routes/admin.posts.js";
+import path from "node:path";
 
 // ---------- init ----------
 const app = express();
@@ -74,7 +75,8 @@ app.use("/api/admin", (await import("./routes/admin.metrics.js")).default);
 app.use("/api/admin", adminUsers);
 app.use("/api/admin", adminParts);
 app.use("/api/admin", adminOrders);
-
+app.use("/api/admin", adminPosts);
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use("/api/auth", (await import("./routes/auth.js")).default);
 app.use("/api/vehicles", (await import("./routes/vehicles.js")).default);
@@ -104,7 +106,7 @@ app.post("/api/payments/checkout", auth, async (req, res) => {
       return {
         quantity: it.qty,
         price_data: {
-          currency: "usd",
+          currency: "lkr",
           unit_amount: unit,
           product_data: {
             name: part?.name || "Part",
