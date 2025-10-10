@@ -89,6 +89,8 @@ app.use("/api", (await import("./routes/community.js")).default);
 app.use("/api/admin", (await import("./routes/admin.js")).default);
 app.use("/api/posts", (await import("./routes/posts.js")).default);
 app.use("/api/testimonials", (await import("./routes/testimonials.js")).default);
+app.use("/api/admin", (await import("./routes/admin.alerts.js")).default);
+
 
 // ---------- Stripe Checkout (build from REAL cart) ----------
 app.post("/api/payments/checkout", auth, async (req, res) => {

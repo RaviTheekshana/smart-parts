@@ -5,6 +5,7 @@ import { api } from "@/lib/api";
 import { TrendingUp, Users, Package, Receipt } from "lucide-react";
 import RevenueChart from "@/components/admin/RevenueChart"; // ← imported
 import TopSellingTable from "@/components/admin/TopSellingTable";
+import TopLowStockTable from "@/components/admin/TopLowStockTable";
 
 type Metrics = {
   counts: { users: number; parts: number; orders: number; paidOrders: number };
@@ -122,6 +123,7 @@ export default function AdminDashboard() {
       <RevenueChart />
       <TopSellingTable />
       </div>
+      <TopLowStockTable />
     </div>
   );
 }
