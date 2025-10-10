@@ -12,6 +12,7 @@ import adminUsers from "./routes/admin.users.js";
 import adminParts from "./routes/admin.parts.js";
 import adminOrders from "./routes/admin.orders.js";
 import adminPosts from "./routes/admin.posts.js";
+import adminTestimonials from "./routes/admin.testimonials.js";
 import path from "node:path";
 
 // ---------- init ----------
@@ -76,6 +77,7 @@ app.use("/api/admin", adminUsers);
 app.use("/api/admin", adminParts);
 app.use("/api/admin", adminOrders);
 app.use("/api/admin", adminPosts);
+app.use("/api/admin", adminTestimonials);
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use("/api/auth", (await import("./routes/auth.js")).default);
@@ -86,6 +88,7 @@ app.use("/api/orders", (await import("./routes/orders.js")).default);
 app.use("/api", (await import("./routes/community.js")).default);
 app.use("/api/admin", (await import("./routes/admin.js")).default);
 app.use("/api/posts", (await import("./routes/posts.js")).default);
+app.use("/api/testimonials", (await import("./routes/testimonials.js")).default);
 
 // ---------- Stripe Checkout (build from REAL cart) ----------
 app.post("/api/payments/checkout", auth, async (req, res) => {

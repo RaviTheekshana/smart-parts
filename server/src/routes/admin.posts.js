@@ -28,8 +28,6 @@ const upload = multer({
     cb(ok ? null : new Error("Only images allowed"), ok);
   },
 });
-const rel = `/uploads/${req.file.filename}`;   // <-- relative
-post.imageUrl = rel;
 
 /** List with filters */
 r.get("/posts", async (req, res) => {

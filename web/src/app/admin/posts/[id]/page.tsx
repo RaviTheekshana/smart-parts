@@ -1,7 +1,7 @@
 "use client";
 
 import useSWR from "swr";
-import { api } from "@/lib/api";
+import { API, api } from "@/lib/api";
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
@@ -81,7 +81,7 @@ export default function AdminPostEdit() {
   {data?.post?.imageUrl ? (
     <div className="rounded-xl border p-3">
       <img
-        src={data.post.imageUrl}
+        src={`${API}${data.post.imageUrl}`}
         alt=""
         className="max-h-64 rounded-lg border"
       />

@@ -2,7 +2,7 @@
 
 import { useParams, useRouter } from "next/navigation";
 import useSWR from "swr";
-import { api } from "@/lib/api";
+import { API, api } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { useState } from "react";
 import { ArrowLeft, ArrowUp, ArrowDown, Send } from "lucide-react";
@@ -188,9 +188,9 @@ export default function CommunityPostPage() {
               {/* Image */}
               {post.imageUrl && (
                 <img
-                  src={post.imageUrl}
+                  src={`${API}${post.imageUrl}`}
                   alt=""
-                  className="mt-3 max-h-96 w-full object-cover rounded-xl border"
+                  className="mt-3 max-h-96 w-60 h-50 object-cover rounded-xl border"
                 />
               )}
 
