@@ -3,13 +3,13 @@ import { useSearchParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { CheckCircle, Clock } from "lucide-react";
 
-export default function SuccessPage() {
+function SuccessPageContent() {
   const sp = useSearchParams();
   const router = useRouter();
   const sessionId = sp.get("session_id");
   const [done, setDone] = useState(false);
   const [err, setErr] = useState<string | null>(null);
-
+  
   useEffect(() => {
     async function run() {
       try {
